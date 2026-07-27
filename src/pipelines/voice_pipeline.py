@@ -1,4 +1,4 @@
-from resemblyzer import voice_encoder, preprocess_wav
+from resemblyzer import VoiceEncoder, preprocess_wav
 import numpy as np
 import librosa 
 import io
@@ -6,7 +6,7 @@ import streamlit as st
 
 @st.cache_resource
 def load_voice_encoder():
-    return voice_encoder()
+    return VoiceEncoder()
 
 
 def get_voice_embedding(audio_bytes):
@@ -15,8 +15,8 @@ def get_voice_embedding(audio_bytes):
 
         audio, sr = librosa.load(io.BytesIO(audio_bytes), sr = 16000)
         wav = preprocess_wav(audio)
-        embedding = encoder.embedd_utterance(wav)
-        return embedding.Tolist()
+        embedding = encoder.embed_utterance(wav)
+        return embedding.tolist()
 
     except Exception as e:
         st.error('Voice recog error') 
@@ -29,7 +29,7 @@ def identify_speaker(new_embedding, candidates_dict, threshold = 0.65):
     Best_sid = 0.0
     Best_score = -1
 
-    for sid, stored_embedding in candidates_dict.item():
+    for sid, stored_embedding in candidates_dict.items():
         if stored_embedding:
             similarity = np.dot(new_embedding, stored_embedding)
             if similarity>Best_score:
@@ -63,7 +63,7 @@ def bulk_voice_processor(audio_bytes, candidates_dict,threshold = 0.65 ):
 
         sid, score = identify_speaker(embedding, candidates_dict, threshold)    
         if sid:
-            if sid not in identify_speaker or score > identified_results[sid]:
+            if sid not in identified_results or score > identified_results[sid]:
                 identified_results[sid] = score
 
         return identified_results   
