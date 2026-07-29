@@ -8,7 +8,7 @@ import time
 @st.dialog("Quick Enrollment")
 def auto_enroll_dialog(subject_code):
     student_id = st.session_state.student_data['student_id']
-    st.info(f"Subject code received: {subject_code}")
+    
 
     res = supabase.table('subjects').select('subject_id, name').eq('subject_code', subject_code).execute()
 
