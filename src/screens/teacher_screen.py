@@ -11,6 +11,7 @@ from src.components.dialog_add_photos import add_photos_dialog
 from src.pipelines.face_pipeline import predict_attendance
 from src.components.dialog_attendance_results import attendance_result_dialog
 from src.database.config import supabase
+from src.components.dialog_voice_attendance import voice_attendance_dialog
 import numpy as np
 import pandas as pd
 
@@ -154,7 +155,8 @@ def teacher_tab_take_attendance():
                     if not enrolled_students:
                         st.warning('No students enrolled in this course')
                     else:
-                        results ,attendance_to_log= []
+                        results= []
+                        attendance_to_log = []
                         
 
                         current_timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
@@ -230,7 +232,10 @@ def teacher_tab_manage_subjects():
 
 
 def teacher_tab_attendance_records():
-    st.header("Attendance Records")        
+    st.header("Attendance Records") 
+
+    teacher_id = st.session_state.teacher_data['teacher_id']
+    records = get_attendance_for_teacher(teacher_id)       
 
 
 def login_teacher(username, password):

@@ -38,7 +38,7 @@ def identify_speaker(new_embedding, candidates_dict, threshold = 0.65):
 
 
     if Best_score>threshold:
-        return Best_score, Best_sid
+        return Best_sid, Best_score
 
     return None, Best_score
 
@@ -49,26 +49,27 @@ def bulk_voice_processor(audio_bytes, candidates_dict,threshold = 0.65 ):
         
         audio, sr = librosa.load(io.BytesIO(audio_bytes), sr = 16000)
         segments = librosa.effects.split(audio, top_db = 30)
+        
 
         identified_results = {}
 
         for start, end in segments:
-            if (start-end) < sr * 0.5:
+            if (end-start) < sr * 0.5:
                 continue
 
             segment_audio = audio[start:end]
             wav = preprocess_wav(segment_audio)
-            embedding = encoder.embedd_utterance(wav)
+            embedding = encoder.embed_utterance(wav)
 
 
-        sid, score = identify_speaker(embedding, candidates_dict, threshold)    
-        if sid:
-            if sid not in identified_results or score > identified_results[sid]:
-                identified_results[sid] = score
+            sid, score = identify_speaker(embedding, candidates_dict, threshold)    
+            if sid:
+                if sid not in identified_results or score > identified_results[sid]:
+                    identified_results[sid] = score
 
         return identified_results   
          
     except Exception as e:
-             st.error('Bulk process error') 
+             st.error('Bulk process error')
              return {} 
     
