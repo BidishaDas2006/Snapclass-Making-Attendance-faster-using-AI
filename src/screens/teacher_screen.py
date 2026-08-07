@@ -4,7 +4,7 @@ from src.components.header import header_dashboard
 from src.components.footer import footer_dashboard
 from src.components.subject_card import subject_card
 
-from src.database.db import create_teacher , check_teacher_exists , teacher_login, get_teacher_subjects
+from src.database.db import create_teacher , check_teacher_exists , teacher_login, get_teacher_subjects, get_attendance_for_teacher
 from src.components.dialog_create_subject import create_subject_dialog
 from src.components.dialog_share_subject import share_subject_dialog
 from src.components.dialog_add_photos import add_photos_dialog
@@ -135,12 +135,15 @@ def teacher_tab_take_attendance():
         with c2:
             
             if st.button('Run Face Analysis', width='stretch', type='secondary', icon=':material/analytics:', disabled=not has_photos):
+                
                 with st.spinner('Deep Scanning Classroom Photos...'):
                     all_detected_ids ={}
 
                     for idx, img in enumerate(st.session_state.attendance_images):
                         img_np = np.array(img.convert('RGB'))
+                        
                         detected, _, _ = predict_attendance(img_np)
+                        
 
 
                         if detected:
@@ -148,8 +151,10 @@ def teacher_tab_take_attendance():
                                 student_id = int(sid)
 
                                 all_detected_ids.setdefault(student_id, []).append(f"Photo{idx+1}")
-
+                    
                     enrolled_res = supabase.table('subject_students').select("*, students(*)").eq('subject_id',selected_subject_id).execute()
+                    
+                    
                     enrolled_students = enrolled_res.data
 
                     if not enrolled_students:
@@ -180,7 +185,7 @@ def teacher_tab_take_attendance():
                                     'is_present': bool(is_present)
                                 })
 
-                    attendance_result_dialog(pd.DataFrame(results), attendance_to_log)
+                        attendance_result_dialog(pd.DataFrame(results), attendance_to_log)
             with c3:
                  if st.button('Use Voice Attendance', type='primary', width='stretch', icon=':material/mic:'):
                     voice_attendance_dialog(selected_subject_id)        
@@ -214,19 +219,19 @@ def teacher_tab_manage_subjects():
                 ("🕰️", "Classes", sub['total_classes']),
 
             ]
-        def share_btn():
-            if st.button(f"Share_code: {sub['name']}", key = f"share_{sub['subject_code']}", icon= ":material/share:"):
-                share_subject_dialog(sub['name'], sub['subject_code'])   
+            def share_btn(sub=sub):
+                if st.button(f"Share_code: {sub['name']}", key = f"share_{sub['subject_code']}", icon= ":material/share:"):
+                    share_subject_dialog(sub['name'], sub['subject_code'])   
 
-            st.space() 
+                st.space() 
 
-        subject_card(
-            name=sub['name'],
-            code = sub['subject_code'],
-            section = sub['section'],
-            stats = stats,
-            footer_callback = share_btn
-        )
+            subject_card(
+                name=sub['name'],
+                code = sub['subject_code'],
+                section = sub['section'],
+                stats = stats,
+                footer_callback = share_btn
+            )
     else:
         st.info("NO SUBJECTS FOUND . CREATE ONE ABOVE")    
 
@@ -235,7 +240,48 @@ def teacher_tab_attendance_records():
     st.header("Attendance Records") 
 
     teacher_id = st.session_state.teacher_data['teacher_id']
-    records = get_attendance_for_teacher(teacher_id)       
+    records = get_attendance_for_teacher(teacher_id)   
+
+    if not records:
+        return
+
+    data= []
+    for r in records:
+        ts = r.get('timestamp')
+
+        data.append({
+            "ts_group": ts.split(".")[0] if ts else None,
+            "Time": datetime.fromisoformat(ts).strftime("%Y-%m-%d %I:%M %p") if ts else "N/A",
+            "Subject": r['subjects']['name'],
+            "Subject Code": r['subjects']['subject_code'],
+            "is_present": bool(r.get('is_present', False))
+            })
+
+    df = pd.DataFrame(data)
+
+    summary = (
+        df.groupby(['ts_group', 'Time', 'Subject', 'Subject Code'])
+        .agg(
+            Present_Count=('is_present', 'sum'),
+            Total_Count=('is_present', 'count')
+        )
+        .reset_index()
+    )
+
+    summary['Attendance Stats'] = (
+        "✅ " + summary['Present_Count'].astype(str) + " /"
+        + summary['Total_Count'].astype(str) + " Students"
+    )
+
+    display_df = (
+        summary.sort_values(by='ts_group', ascending=False)
+            [['Time', 'Subject', 'Subject Code', 'Attendance Stats']]
+    )
+
+    st.dataframe(display_df, width='stretch', hide_index=True)
+
+
+           
 
 
 def login_teacher(username, password):

@@ -75,6 +75,7 @@ def train_classifier():
     model_data  = get_trained_model()
     return bool(model_data)
 
+
 def predict_attendance(class_image_np):
 
     encodings = get_face_embedding(class_image_np)
