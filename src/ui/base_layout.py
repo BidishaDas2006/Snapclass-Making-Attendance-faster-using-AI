@@ -59,6 +59,7 @@ def style_base_layout():
                     line-height:1.1 !important;
                     margin-bottom:0rem !important;
                     
+                    
 
                     }
                 
@@ -67,6 +68,7 @@ def style_base_layout():
                     font-size:2rem !important;
                     line-height:0.9 !important;
                     margin-bottom:0rem !important;
+                    color: black !important;
                     
 
                     }
